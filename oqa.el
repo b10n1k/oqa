@@ -28,6 +28,15 @@
 
 ;;; Code:
 
+(require 'transient)
+(require 'dash)
+(require 's)
+;;(require 'yaml-mode)
+(require 'tramp)
+(require 'subr-x)
+(require 'eshell)
+(require 'dired)
+
 (defgroup oqa ()
   "OpenQA Framework"
   :group 'tools
@@ -36,14 +45,106 @@
 
 (defun main ()
   "oqa starts here"
-  ;;(interactive)
+  (interactive)
   ;; (debug)
-  (message "hello")
+  ;;(message "hello")
+  (oqa)
   )
 
 (define-key global-map (kbd "C-M-z") 'main)
 
-;;(main)
+(defun get-nth-opensuse-build (n)
+  (let* ((json-hash (with-current-buffer
+			(url-retrieve-synchronously "https://openqa.opensuse.org/group_overview/1.json")
+		      (goto-char (point-min))
+		      (re-search-forward "^$")
+		      (delete-region (point) (point-min))
+		      (json-parse-buffer)))
+	 (builds (gethash "build_results" json-hash))
+	 (last-build (aref builds n)))
+    (message "%S" last-build)
+    (list nil
+	  (vector
+	   (gethash "version" last-build)
+	   (number-to-string (gethash "total" last-build))
+	   (number-to-string (gethash "passed" last-build))
+	   (number-to-string (gethash "failed" last-build))
+	   (number-to-string (gethash "unfinished" last-build))))))
+
+(defun oqa-status (&optional jid)
+  "Return the status of the Groupid <jid>
+
+ARGS is the arguments list from transient."
+  (interactive (list (transient-args 'oqa-transient)))
+
+  (switch-to-buffer "*oqa_results*")
+  (setq tabulated-list-format [("Distri" 15) ("Total" 8) ("Passes" 8) ("Failed" 8) ("Unfinished" 10)])
+  (setq tabulated-list-entries (list (get-nth-opensuse-build 0)))
+  (tabulated-list-init-header)
+  (tabulated-list-print))
+;; (defun oqa-status (&optional jid)
+;;   "Return the status of the Groupid <jid>
+
+;; ARGS is the arguments list from transient."
+;;     (let* ((json-hash (with-current-buffer
+;;                           (url-retrieve-synchronously "https://openqa.opensuse.org/group_overview/1.json")
+;;                         (goto-char (point-min))
+;;                         (re-search-forward "^$")
+;;                         (delete-region (point) (point-min))
+;;                         (json-parse-buffer)))
+;;            (builds (gethash "build_results" json-hash))
+;;            (last-build (aref builds n)))
+;;       (message "%S" last-build)
+;;       (list nil
+;;             (vector
+;;              (gethash "version" last-build)
+;;              (number-to-string (gethash "total" last-build))
+;;              (number-to-string (gethash "passed" last-build))
+;;              (number-to-string (gethash "failed" last-build))
+;;              (number-to-string (gethash "unfinished" last-build)))))
+;;   (interactive (list (transient-args 'oqa-log-popup)))
+;;   (switch-to-buffer "*oqa_results*")
+;;   (setq tabulated-list-format columns)
+;;   (setq tabulated-list-entries rows)
+;;   (tabulated-list-init-header)
+;;   (tabulated-list-print))
+
+;; popups
+
+(transient-define-prefix oqa-transient ()
+  "oqa Menu"
+  ["Actions"
+   ("s" "OpenQA Group status" oqa-status)])
+
+;;;###autoload
+(defun oqa ()
+  "Invoke the oqa buffer.
+DIRECTORY is optional for TRAMP support."
+  (interactive)
+  ;;(oqa--save-line)
+  ;;(oqa--pop-to-buffer (oqa--buffer-name))
+  ;;(when directory (setq default-directory directory))
+  (oqa-mode)
+  ;; (message (concat "Namespace: " openqa-namespace))
+  )
+
+(defvar oqa-mode-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map (kbd "o") 'oqa-transient)
+    map))
+
+(define-derived-mode oqa-mode tabulated-list-mode "openqa"
+  "Special mode for oqa buffers."
+  (buffer-disable-undo)
+  (kill-all-local-variables)
+  (setq truncate-lines t)
+  (setq mode-name "oqa")
+  (setq major-mode 'oqa-mode)
+  ;;(use-local-map oqa-mode-map)
+  (setq tabulated-list-sort-key nil)
+  (tabulated-list-init-header)
+  (tabulated-list-print)
+  (hl-line-mode 1))
 
 (provide 'oqa)
 ;;; oqa.el ends here
