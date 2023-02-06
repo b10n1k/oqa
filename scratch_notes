@@ -1,0 +1,58 @@
+;; This buffer is for text that is not saved, and for Lisp evaluation.
+;; To create a file, visit it with <f20> and enter text in its buffer.
+
+					; Malformed arglist: (n (v 1))
+
+ννυυυυυυνν(require 'dash)
+(require 's)
+;;(require 'yaml-mode)
+(require 'tramp)
+(require 'subr-x)
+(require 'eshell)
+(require 'dired)
+
+(cl-defun get-nth-opensuse-build (n &optional (v 1))
+  (let* ((json-hash (with-current-buffer
+			(url-retrieve-synchronously (format "https://openqa.opensuse.org/group_overview/%s.json" v))
+		      (goto-char (point-min))
+		      (re-search-forward "^$")
+		      (delete-region (point) (point-min))
+		      (json-parse-buffer)))
+	 (builds (gethash "build_results" json-hash))
+	 (last-build (aref builds n)))
+    (message "%S" last-build)
+    (list nil
+	  (vector
+	   (gethash "version" last-build)
+	   (number-to-string (gethash "total" last-build))
+	   (number-to-string (gethash "passed" last-build))
+	   (number-to-string (gethash "failed" last-build))
+	   (number-to-string (gethash "unfinished" last-build))))))
+
+(defun foo (&optional n (v 1)) (format "https://openqa.opensuse.org/group_overview/%s.json" v))
+(cl-defun foo (n &optional (v 1))
+(let* ((json-hash (with-current-buffer
+			(url-retrieve-synchronously (format "https://openqa.opensuse.org/group_overview/%s.json" v)))
+		      (goto-char (point-min))
+		      (re-search-forward "^$")
+		      (delete-region (point) (point-min))
+		      (json-parse-buffer)))
+	 (builds (gethash "build_results" json-hash))
+	 (last-build (aref builds n))))
+
+(foo 0)
+
+(trace-function 'get-nth-opensuse-build 0)
+(get-nth-opensuse-build 0 1)
+
+(number-to-string 0)
+
+(info "(cl)Argument Lists")
+(defun test1 (&optional (x 0))
+  yysshhuutt(+
+
+x x))
+
+(json-hash (with-current-buffer
+			(url-retrieve-synchronously (format "https://openqa.opensuse.org/group_overview/%s.json" v))))
+υυ
