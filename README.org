@@ -4,6 +4,21 @@
 [[https://github.com/b10n1k/oqa/actions][https://img.shields.io/github/workflow/status/b10n1k/oqa/test/master.svg?style=flat-square]]
 * oqa: OpenQA Framework
 
+oqa.el provides a mode which user can review and take actions over
+[[http://open.qa/][OpenQA]] from one place in replace of the OpenQA UI for increased productivity
+of daily tasks.
+
 * How to Use?
+
+oqa integrates [[https://github.com/magit/transient][transient]] and connects it with its various operations. The
+framework gives a quick menu to perform various actions.
+
+To simple run the oqa-mode press `C-M-z`. This by default will show the
+*oqa_results* buffer with some results. The results are coming from the API
+call and shows the DISTRI, and the overall test results
+
+Once at the *oqa_results* pressing `o` with pop up the options to select
+actions
+
 * License
   This package is licensed by GPLv3. See [[file:LICENSE][LICENSE]].

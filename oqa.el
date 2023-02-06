@@ -53,9 +53,24 @@
 
 (define-key global-map (kbd "C-M-z") 'main)
 
+(transient-define-prefix oqa-opensuse ()
+  "Prefix that waves with overridden suffix behavior."
+  [(tsc-suffix-wave-macroed
+    :transient nil
+    :key "stw"
+    :description "TW status"
+    :command oqa-status)])
+(transient-define-prefix oqa-suse ()
+  "Prefix that waves with overridden suffix behavior."
+  [(tsc-suffix-wave-macroed
+    :transient nil
+    :key "shpc"
+    :description "wave overridingly"
+    :command tsc--wave-override)])
+
 (defun get-nth-opensuse-build (n)
   (let* ((json-hash (with-current-buffer
-			(url-retrieve-synchronously "https://openqa.opensuse.org/group_overview/1.json")
+		      (url-retrieve-synchronously (format "https://openqa.opensuse.org/group_overview/1.json"))
 		      (goto-char (point-min))
 		      (re-search-forward "^$")
 		      (delete-region (point) (point-min))
@@ -71,59 +86,77 @@
 	   (number-to-string (gethash "failed" last-build))
 	   (number-to-string (gethash "unfinished" last-build))))))
 
-(defun oqa-status (&optional jid)
+(defun oqa-status ()
   "Return the status of the Groupid <jid>
-
-ARGS is the arguments list from transient."
-  (interactive (list (transient-args 'oqa-transient)))
-
+  ARGS is the arguments list from transient."
+  ;;(interactive (list (transient-args 'oqa-transient)))
+  (interactive)
   (switch-to-buffer "*oqa_results*")
   (setq tabulated-list-format [("Distri" 15) ("Total" 8) ("Passes" 8) ("Failed" 8) ("Unfinished" 10)])
   (setq tabulated-list-entries (list (get-nth-opensuse-build 0)))
   (tabulated-list-init-header)
   (tabulated-list-print))
-;; (defun oqa-status (&optional jid)
-;;   "Return the status of the Groupid <jid>
 
-;; ARGS is the arguments list from transient."
-;;     (let* ((json-hash (with-current-buffer
-;;                           (url-retrieve-synchronously "https://openqa.opensuse.org/group_overview/1.json")
-;;                         (goto-char (point-min))
-;;                         (re-search-forward "^$")
-;;                         (delete-region (point) (point-min))
-;;                         (json-parse-buffer)))
-;;            (builds (gethash "build_results" json-hash))
-;;            (last-build (aref builds n)))
-;;       (message "%S" last-build)
-;;       (list nil
-;;             (vector
-;;              (gethash "version" last-build)
-;;              (number-to-string (gethash "total" last-build))
-;;              (number-to-string (gethash "passed" last-build))
-;;              (number-to-string (gethash "failed" last-build))
-;;              (number-to-string (gethash "unfinished" last-build)))))
-;;   (interactive (list (transient-args 'oqa-log-popup)))
+;; suffix cmds
+;; https://magit.vc/manual/transient/Defining-Suffix-and-Infix-Commands.html
+;; (defun oqa-status (jid)
+;;   "Return the status of the Groupid <jid>
+;;   ARGS is the arguments list from transient."
+;;   (interactive (list (transient-args 'oqa-transient)))
+
 ;;   (switch-to-buffer "*oqa_results*")
-;;   (setq tabulated-list-format columns)
-;;   (setq tabulated-list-entries rows)
+;;   (setq tabulated-list-format [("Distri" 15) ("Total" 8) ("Passes" 8) ("Failed" 8) ("Unfinished" 10)])
+;;   (setq tabulated-list-entries (list (get-nth-opensuse-build 0 1)))
 ;;   (tabulated-list-init-header)
 ;;   (tabulated-list-print))
 
-;; popups
+(defun tsc-suffix-wave ()
+  "General Testing function."
+  (interactive)
+  (message "Waves at the user at: %s." (current-time-string)))
+(defun tsc--wave-override ()
+  "Vanilla command used to override suffix's commands."
+  (interactive)
+    (message "This suffix was overridden.  I am what remains."))
+(transient-define-prefix tsc-wave-overridden ()
+  "Prefix that waves with overridden suffix behavior."
+  [(tsc-suffix-wave-macroed
+    :transient nil
+    :key "O"
+    :description "wave overridingly"
+    :command tsc--wave-override)])
 
+;; popups
+;; preffix cmds
 (transient-define-prefix oqa-transient ()
   "oqa Menu"
-  ["Actions"
-   ("s" "OpenQA Group status" oqa-status)])
+  ["OpenQA Instance"
+
+   ;; this suffix will not exit after calling sub-prefix
+   ("ooo" "openqa.opensuse.org" tsc-wave-overridden)
+   ("osd" "openqa.suse.de" tsc-wave :transient t)])
+  ;; ["Job Groups" :description "group overview parent"
+  ;; ;;["Actions":
+  ;;  ("g" "parent groups" tsc-suffix-wave :description "List all groups")
+  ;;  ;; list all groups with status
+  ;;   ("d" tsc-suffix-wave :description "Dispay certain group")]
+  ;;  [:description "Build"
+  ;; 		 ("bl" "latest build" (lambda ()
+  ;; 			     (interactive)
+  ;; 			     (message "suffix wave too much called")))
+  ;; 		 ("bs" "build settings" (lambda ()
+  ;; 			     (interactive)
+  ;; 			     (message "suffix wave excessively called")))]
+  ;;  ("s" "OpenQA Group status" oqa-status)])
 
 ;;;###autoload
 (defun oqa ()
   "Invoke the oqa buffer.
-DIRECTORY is optional for TRAMP support."
+  DIRECTORY is optional for TRAMP support."
   (interactive)
-  ;;(oqa--save-line)
-  ;;(oqa--pop-to-buffer (oqa--buffer-name))
-  ;;(when directory (setq default-directory directory))
+  (oqa--save-line)
+  (oqa--pop-to-buffer (oqa--buffer-name))
+  (when directory (setq default-directory directory))
   (oqa-mode)
   ;; (message (concat "Namespace: " openqa-namespace))
   )
@@ -133,18 +166,20 @@ DIRECTORY is optional for TRAMP support."
     (define-key map (kbd "o") 'oqa-transient)
     map))
 
+;; major mode oqa-mode
 (define-derived-mode oqa-mode tabulated-list-mode "openqa"
   "Special mode for oqa buffers."
   (buffer-disable-undo)
   (kill-all-local-variables)
   (setq truncate-lines t)
-  (setq mode-name "oqa")
+  (setq mode-name "oqa-mode")
   (setq major-mode 'oqa-mode)
-  ;;(use-local-map oqa-mode-map)
+  (use-local-map oqa-mode-map)
   (setq tabulated-list-sort-key nil)
   (tabulated-list-init-header)
   (tabulated-list-print)
-  (hl-line-mode 1))
+  (hl-line-mode 1)
+  (oqa-status 1))
 
 (provide 'oqa)
 ;;; oqa.el ends here
